@@ -1,7 +1,8 @@
 import express, { Request, Response } from "express";
 import { middleware } from "./middleware.js";
 import jwt from "jsonwebtoken";
-import { CreateUserSchema } from "@repo/common/types";
+import { CreateUserSchema,CreateRoomSchema} from "@repo/common/types";
+
 // @ts-ignore
 import { JWT_SECRET } from "@repo/backend-common/config";
 import { prismaClient } from "@repo/db/db";
@@ -9,31 +10,30 @@ import { prismaClient } from "@repo/db/db";
 const app = express();
 app.use(express.json());
 
-app.post("/signup", async (req, res ) => {
-  // Validate the request body using Zod schema
+app.post("/signup", async (req:Request, res:Response ) => {
+  
   const data = CreateUserSchema.safeParse(req.body);
 
-  // If validation fails, send an error response
   if (!data.success) {
-    return res.status(400).json({
+     res.status(400).json({
       message: "Invalid details",
-      errors: data.error.errors, // Optional: Include validation errors
+      errors: data.error.errors, 
     });
   }
 
   try {
-    // Create a new user in the database
+  
     const user = await prismaClient.user.create({
-      data: data.data, // Use the validated data
+      data: data.data, 
     });
 
-    // Send a success response
+
     res.json({
       message: "User created successfully",
       user,
     });
   } catch (error) {
-    // Handle database errors
+    
     console.error("Error creating user:", error);
     res.status(500).json({
       message: "Internal server error",
@@ -41,20 +41,42 @@ app.post("/signup", async (req, res ) => {
   }
 });
 
-app.post("/signin", middleware, async (req, res) => {
-  const userId = 123;
-  const token = jwt.sign(
-    { userId },
-    JWT_SECRET
-  );
+app.post("/signin", async (req: Request, res: Response) => {
+  const { name, password } = req.body;
+
+  const user = await prismaClient.user.findFirst({
+    where: { name },
+  });
+
+  if (!user || user.password !== password) {
+     res.status(401).json({ message: "Invalid credentials" });
+     return ;
+  }
+
+  const token = jwt.sign({ userId: user.id }, JWT_SECRET);
+  
   res.json({
-    message: "signin",
+    message: "Signin successful",
     token,
   });
 });
 
 app.post("/room", middleware, async (req, res) => {
-  res.json({ message: "room" });
+  const parsedData=CreateRoomSchema.safeParse(req.body);
+  if(!parsedData.success){
+    res.json({
+      message:"Incorrect inputs"
+    })
+    return;
+  }
+  //@ts-ignore
+   const userId=req.userId;
+   await prismaClient.room.create({
+    data:{
+      slug:parsedData.data.name,
+      adminId:userId
+    }
+   })
 });
 
 app.listen(3008, () => {
