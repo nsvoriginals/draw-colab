@@ -1,1 +1,1 @@
-export const JWT_SECRET=process.env.JWT_SECRET || "!2EAS9";
+export const JWT_SECRET:string="!2EAS9" 

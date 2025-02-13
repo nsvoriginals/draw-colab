@@ -1,7 +1,9 @@
 {
-    "compilerOptions": {
-      "rootDir": "./src",
-      "outDir": "./dist"
-    }
+  "extends":"../typescript-config/base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
   }
-  
+}
